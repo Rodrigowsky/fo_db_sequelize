@@ -1,11 +1,17 @@
 const router = require("express").Router();
 const { sequelize } = require('../util/db')
-const { Blog } = require("../models");
+const { Blog, User } = require("../models");
+const { errorHandler, authVerification} = require('../util/middleware')
 
-router.get("/", async (req, res, next) => {
+router.get("/", authVerification, async (req, res, next) => {
   try {
     const blogs = await sequelize.query("SELECT * FROM blogs", {
       model: Blog,
+      // attributes: { exclude: ['userId'] },
+      // include: {
+      //   model: User,
+      //   attributes: ['name']
+      // }
     });
 
     blogs.forEach((blog) => {
@@ -31,7 +37,7 @@ router.get("/:id", async (req, res, next) => {
   }
 });
 
-router.put(":id", async (req, res, next) => {
+router.put(":id", authVerification, async (req, res, next) => {
   try {
     const blogs = await sequelize.query(
       `UPDATE blogs SET likes=${req.body.likes} WHERE id=${req.params.id}`,
@@ -46,10 +52,13 @@ router.put(":id", async (req, res, next) => {
   }
 });
 
-router.post("/", async (req, res, next) => {
+router.post("/", authVerification, async (req, res, next) => {
   try {
+    console.log("HELLLLLLLOOOOOOOOOOOOOOO", req.authToken)
+    const user = await User.findByPk(req.authToken.id);
+
     const blogs = await sequelize.query(
-      `INSERT INTO blogs(author, url, title, likes) VALUES('${req.body.author}','${req.body.url}','${req.body.title}',${req.body.likes})`,
+      `INSERT INTO blogs(author, url, title, likes,user_id) VALUES('${req.body.author}','${req.body.url}','${req.body.title}',${req.body.likes},${user.id})`,
       {
         model: Blog,
       }
@@ -61,15 +70,26 @@ router.post("/", async (req, res, next) => {
   }
 });
 
-router.delete("/:id", async (req, res, next) => {
+router.delete("/:id", authVerification, async (req, res, next) => {
   try {
-    const blogs = await sequelize.query(
-      `DELETE FROM blogs WHERE id=${req.params.id}`,
-      {
-        model: Blog,
-      }
-    );
-    res.json(blogs);
+    const user = await User.findByPk(req.authToken.id);
+
+    const blog = await Blog.findByPk(req.params.id);
+    console.log(user, blog);
+    if (blog.userId === user.id) {
+      const blogs =  await sequelize.query(
+        `DELETE FROM blogs WHERE id=${req.params.id}`,
+        {
+          model: Blog,
+        }
+      );
+      res.json(blogs);
+    } else {
+      res.send("No blog associated with this user found")
+      throw new Error("No blog associated with this user found");
+    }
+    
+    
   } catch (error) {
     next(error);
   }
