@@ -5,7 +5,14 @@ const { User } = require('../models')
 const { errorHandler, authVerification } = require('../util/middleware')
 
 router.get('/', async (req, res) => {
-  const users = await User.findAll()
+  const users = await User.findAll({
+  include: {
+    model: Blog,
+    attributes: ['title']
+  }
+  })
+
+
   res.json(users)
 })
 

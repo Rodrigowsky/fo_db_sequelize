@@ -5,18 +5,25 @@ const { errorHandler, authVerification} = require('../util/middleware')
 
 router.get("/", authVerification, async (req, res, next) => {
   try {
-    const blogs = await sequelize.query("SELECT * FROM blogs", {
-      model: Blog,
-      // attributes: { exclude: ['userId'] },
-      // include: {
-      //   model: User,
-      //   attributes: ['name']
-      // }
-    });
+    // const blogs = await sequelize.query("SELECT * FROM blogs", {
+    //   model: Blog,
+    //   include: {
+    //     model: User,
+    //     attributes: ['name']
+    //   }
+    // });
 
-    blogs.forEach((blog) => {
-      console.log(`${blog.author}: ${blog.title}, ${blog.likes} likes`);
-    });
+    const blogs = await Blog.findAll({
+      attributes: { exclude: ['userId'] },
+    include: {
+      model: User,
+      attributes: ['name']
+    }
+    })
+
+    // blogs.forEach((blog) => {
+    //   console.log(`${blog.author}: ${blog.title}, ${blog.likes} likes`);
+    // });
     res.json(blogs);
   } catch (error) {
     next(error);
